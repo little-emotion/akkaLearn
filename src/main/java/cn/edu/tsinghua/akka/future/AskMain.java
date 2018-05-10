@@ -22,17 +22,18 @@ public class AskMain {
         ActorRef printActor = system.actorOf(Props.create(PrintActor.class), "PrintActor");
         ActorRef workerActor = system.actorOf(Props.create(WorkerActor.class), "WorkerActor");
 
-        //等等future返回
-        Future<Object> future = Patterns.ask(workerActor, 5, 4000);
+        //等等future返回，设置超时时间为4000ms
+        Future<Object> future = Patterns.ask(workerActor, 2, 4000);
         System.out.println("waiting");
         int result = (int) Await.result(future, Duration.create(4, TimeUnit.SECONDS));
         System.out.println("result:" + result);
 
-        //不等待返回值，直接重定向到其他actor，有返回值来的时候将会重定向到printActor
+        //不等待返回值，有返回值来的时候将会重定向到printActor
         Future<Object> future1 = Patterns.ask(workerActor, 8, 4000);
         Patterns.pipe(future1, system.dispatcher()).to(printActor);
         System.out.println("do not wait");
 
         workerActor.tell(PoisonPill.getInstance(), ActorRef.noSender());
+        system.terminate();
     }
 }
