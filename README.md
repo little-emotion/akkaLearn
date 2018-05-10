@@ -26,10 +26,11 @@ Actor模型类似等级制度，上级对下级拥有绝对生杀大权。每个
 由于这个模型很贴近人类社会，所以程序员可以把精力放在如何对应到业务逻辑上。
 
 
-## Actor默认方法
+## Actor生命周期
 
-preStart()：Actor对象在启动前会调用
-postStop()：Actor对象停止运行时/后（不太清楚）会调用。
+preStart() is invoked after the actor has started but before it processes its first message.
+postStop() is invoked just before the actor stops. No messages are processed after this point.
+
 
 
 * 启动一个actor并restart的调用流程：原实例为actor1，新实例为actor2

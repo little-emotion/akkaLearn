@@ -2,6 +2,7 @@ package cn.edu.tsinghua.akka.router;
 
 import akka.actor.*;
 import akka.routing.*;
+import cn.edu.tsinghua.akka.MyWork;
 import cn.edu.tsinghua.akka.inbox.InboxTest;
 import com.typesafe.config.ConfigFactory;
 
@@ -19,7 +20,7 @@ public class RouterTest extends UntypedAbstractActor {
         ArrayList<Routee> routees = new ArrayList<>();
         for(int i = 0; i < 3; i ++) {
             //借用上面的 inboxActor
-            ActorRef worker = getContext().actorOf(Props.create(InboxTest.class), "worker_" + i);
+            ActorRef worker = getContext().actorOf(MyWork.props(), "worker_" + i);
             getContext().watch(worker);//监听
             routees.add(new ActorRefRoutee(worker));
         }
@@ -34,7 +35,7 @@ public class RouterTest extends UntypedAbstractActor {
 
     @Override
     public void onReceive(Object o) throws Throwable {
-        if(o instanceof InboxTest.Msg){
+        if(o instanceof MyWork.Msg){
             router.route(o, getSender());//进行路由转发
         }else if(o instanceof Terminated){
             router = router.removeRoutee(((Terminated)o).actor());//发生中断，将该actor删除。当然这里可以参考之前的actor重启策略，进行优化，为了简单，这里仅进行删除处理
@@ -61,9 +62,9 @@ public class RouterTest extends UntypedAbstractActor {
         int i = 1;
         while(flag.get()){
             System.out.println(i);
-            routerTest.tell(InboxTest.Msg.WORKING, ActorRef.noSender());
+            routerTest.tell(MyWork.Msg.WORKING, ActorRef.noSender());
 
-            if(i % 3 == 0) routerTest.tell(InboxTest.Msg.CLOSE, ActorRef.noSender());
+            if(i % 3 == 0) routerTest.tell(MyWork.Msg.STOP, ActorRef.noSender());
 
             Thread.sleep(500);
 

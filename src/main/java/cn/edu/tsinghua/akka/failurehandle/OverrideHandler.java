@@ -1,21 +1,24 @@
-package cn.edu.tsinghua.akka.supervisor;
+package cn.edu.tsinghua.akka.failurehandle;
 
 import akka.actor.*;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
 import akka.japi.Function;
+import cn.edu.tsinghua.akka.MyWork;
+import com.typesafe.config.ConfigFactory;
 import scala.concurrent.duration.Duration;
 
 import java.util.concurrent.TimeUnit;
 
+
 /**
- * Created by liubenlong on 2017/1/9.
- * 监督者，监督策略
+ * SuperVisor actor生成RestartActor，并接收RestartActor抛出的异常，并对RestartActor进行处理
  */
-public class SuperVisor extends UntypedAbstractActor{
+public class OverrideHandler extends UntypedAbstractActor{
 
     private LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
 
+    ActorRef child = getContext().actorOf(MyWork.props(), "restartActor");
 
     /**
      * 配置自己的strategy
@@ -46,10 +49,23 @@ public class SuperVisor extends UntypedAbstractActor{
 
     @Override
     public void onReceive(Object o) throws Throwable {
-        if(o instanceof Props){
-            getContext().actorOf((Props)o , "restartActor");
-        }else{
-            unhandled(o);
-        }
+        unhandled(o);
     }
+
+    public static void main(String[] args) {
+        ActorSystem system = ActorSystem.create("strategy", ConfigFactory.load("akka.config"));
+        ActorRef superVisor = system.actorOf(Props.create(OverrideHandler.class), "SuperVisor");
+
+        ActorSelection actorSelection = system.actorSelection("akka://strategy/user/SuperVisor/restartActor");//这是akka的路径。restartActor是在SuperVisor中创建的。
+        actorSelection.tell(MyWork.Msg.RESTART, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESTART, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESTART, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESUME, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESUME, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESTART, ActorRef.noSender());  //第四次RESTART导致supervisor关掉了RestartActor
+        actorSelection.tell(MyWork.Msg.RESUME, ActorRef.noSender());
+        actorSelection.tell(MyWork.Msg.RESTART, ActorRef.noSender());
+
+    }
+
 }
